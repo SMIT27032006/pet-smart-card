@@ -1,26 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Pet Smart NFC Card</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; }
-    header { background: #2c7be5; color: white; padding: 20px; text-align: center; }
-    section { padding: 20px; background: white; margin: 15px; border-radius: 10px; }
-    h2 { color: #2c7be5; }
-    .btn {
-      display: inline-block;
-      padding: 12px 18px;
-      background: #2c7be5;
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      margin: 5px 5px 5px 0;
-    }
-    .btn.whatsapp { background: #25D366; }
-    footer { text-align: center; padding: 15px; color: #666; }
-  </style>
+<meta charset="UTF-8">
+<title>Pet Smart NFC Card</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { font-family: Arial, sans-serif; margin:0; background:#f4f4f4; }
+header { background:#2c7be5; color:white; padding:20px; text-align:center; }
+section { background:white; margin:15px; padding:20px; border-radius:10px; }
+h2 { color:#2c7be5; margin-top:0; }
+p { margin:6px 0; }
+.btn { display:inline-block; padding:10px 15px; margin-top:8px; background:#2c7be5; color:white; text-decoration:none; border-radius:6px; }
+.btn.whatsapp { background:#25D366; }
+img { max-width:100%; border-radius:10px; margin-top:10px; }
+footer { text-align:center; color:#777; padding:15px; font-size:13px; }
+</style>
 </head>
 <body>
 
@@ -30,40 +25,86 @@
 </header>
 
 <section>
-  <h2>🐶 Pet Profile</h2>
-  <p><strong>Name:</strong> Bruno</p>
-  <p><strong>Breed:</strong> Labrador</p>
-  <p><strong>Age:</strong> 3 Years</p>
-  <p><strong>Color:</strong> Brown</p>
+  <h2>🐶 Pet Details</h2>
+  <p><strong>Pet ID:</strong> <span id="petId"></span></p>
+  <p><strong>Name:</strong> <span id="petName"></span></p>
+  <p><strong>Type:</strong> <span id="petType"></span></p>
+  <p><strong>Breed:</strong> <span id="breed"></span></p>
+  <p><strong>Age:</strong> <span id="age"></span></p>
+  <p><strong>Color/Mark:</strong> <span id="color"></span></p>
+  <p><strong>Gender:</strong> <span id="gender"></span></p>
 </section>
 
 <section>
   <h2>👤 Owner Details</h2>
-  <p><strong>Name:</strong> Smit Patel</p>
-  <p><strong>Phone:</strong> +91 9XXXXXXXXX</p>
+  <p><strong>Name:</strong> <span id="ownerName"></span></p>
+  <p><strong>Mobile:</strong> <span id="mobile"></span></p>
+  <a id="callBtn" class="btn">📞 Call Owner</a>
+  <a id="waBtn" class="btn whatsapp">💬 WhatsApp</a>
+</section>
 
-  <a class="btn" href="tel:+919XXXXXXXXX">📞 Call Owner</a>
-  <a class="btn whatsapp" href="https://wa.me/919XXXXXXXXX">💬 WhatsApp</a>
+<section id="photoSection" style="display:none;">
+  <h2>📸 Pet Photo</h2>
+  <img id="petPhoto" alt="Pet Photo">
 </section>
 
 <section>
-  <h2>🚨 Emergency Info</h2>
-  <p>If found, please contact immediately.</p>
-  <p>Nearest Vet: City Pet Hospital</p>
-</section>
-
-<section>
-  <h2>📲 How This Works</h2>
-  <ul>
-    <li>Tap NFC card on phone</li>
-    <li>Pet profile opens instantly</li>
-    <li>Contact owner in one click</li>
-  </ul>
+  <h2>🩺 Vaccination Status</h2>
+  <p id="vaccine"></p>
 </section>
 
 <footer>
-  © 2026 Pet Smart NFC Card | Made in India 🇮🇳
+  © 2026 Pet Smart NFC Card • Made in India 🇮🇳
 </footer>
+
+<script>
+const sheetURL = "https://docs.google.com/spreadsheets/d/1SbMtoefZzlCpw4rnNlZU_GeTZXepJMGG9SPgQBzqm_g/export?format=csv";
+
+const params = new URLSearchParams(window.location.search);
+const petKey = params.get("pet");
+
+if (!petKey) {
+  document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Pet ID not provided.</h2>";
+}
+
+fetch(sheetURL)
+  .then(res => res.text())
+  .then(csv => {
+    const rows = csv.trim().split("\n").slice(1);
+    rows.forEach(row => {
+      const c = row.split(",");
+
+      // Adjust indices if your Sheet columns differ
+      if (c[1] === petKey) {
+        document.getElementById("petId").innerText = c[1];
+        document.getElementById("ownerName").innerText = c[3];
+        document.getElementById("petName").innerText = c[6];
+        document.getElementById("petType").innerText = c[10];
+        document.getElementById("breed").innerText = c[7];
+        document.getElementById("age").innerText = c[8];
+        document.getElementById("color").innerText = c[9];
+        document.getElementById("gender").innerText = c[11];
+
+        const fullMobile = c[2] + c[4];
+        document.getElementById("mobile").innerText = fullMobile;
+
+        document.getElementById("callBtn").href = "tel:" + fullMobile;
+        document.getElementById("waBtn").href = "https://wa.me/" + fullMobile.replace("+", "");
+
+        document.getElementById("vaccine").innerText = c[12];
+
+        if (c[13]) {
+          document.getElementById("petPhoto").src = c[13];
+          document.getElementById("photoSection").style.display = "block";
+        }
+      }
+    });
+  })
+  .catch(err => {
+    console.error(err);
+    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Failed to load data.</h2>";
+  });
+</script>
 
 </body>
 </html>
