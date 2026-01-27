@@ -1,110 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Pet Smart NFC Card</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<title>UNITAPP – Pet Smart NFC Card</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- ====== FIREBASE SDK ====== -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family: Arial, sans-serif; margin:0; background:#f4f4f4; }
-header { background:#2c7be5; color:white; padding:20px; text-align:center; }
-section { background:white; margin:15px; padding:20px; border-radius:10px; }
-h2 { color:#2c7be5; margin-top:0; }
-p { margin:6px 0; }
-.btn { display:inline-block; padding:10px 15px; margin-top:8px; background:#2c7be5; color:white; text-decoration:none; border-radius:6px; }
-.btn.whatsapp { background:#25D366; }
-img { max-width:100%; border-radius:10px; margin-top:10px; }
-footer { text-align:center; color:#777; padding:15px; font-size:13px; }
+:root{
+  --bg:#0f172a;
+  --card:#111827;
+  --accent:#2dd4bf;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+}
+*{box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
+body{
+  margin:0;
+  min-height:100vh;
+  background:radial-gradient(circle at top,#1e293b,#020617);
+  color:var(--text);
+  display:flex;
+  justify-content:center;
+}
+.container{
+  width:100%;
+  max-width:420px;
+  padding:24px;
+}
+header{
+  text-align:center;
+  margin-bottom:20px;
+}
+header img{
+  height:80px;
+  margin-bottom:10px;
+}
+header h1{
+  margin:0;
+  font-size:22px;
+}
+header p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+.card{
+  background:linear-gradient(180deg,#0b1220,#020617);
+  border-radius:20px;
+  padding:20px;
+  box-shadow:0 20px 40px rgba(0,0,0,.6);
+}
+.pet-icon{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  background:rgba(45,212,191,.12);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 12px;
+}
+.pet-icon span{
+  font-size:42px;
+}
+h2{
+  text-align:center;
+  margin:8px 0 16px;
+}
+.row{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.row:last-child{border:none}
+.label{color:var(--muted);font-size:13px}
+.value{font-weight:500}
+.actions{
+  display:flex;
+  gap:12px;
+  margin-top:16px;
+}
+.actions a,button{
+  flex:1;
+  background:var(--accent);
+  color:#022c22;
+  border:none;
+  border-radius:14px;
+  padding:12px;
+  font-weight:600;
+  text-align:center;
+  text-decoration:none;
+  cursor:pointer;
+}
+.edit{
+  margin-top:14px;
+  background:transparent;
+  color:var(--accent);
+  border:1px dashed var(--accent);
+}
+input{
+  width:100%;
+  background:#020617;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  padding:10px;
+  color:var(--text);
+  margin-bottom:10px;
+}
+.hidden{display:none}
+.alert{
+  background:#7f1d1d;
+  color:#fecaca;
+  padding:10px;
+  border-radius:10px;
+  text-align:center;
+  margin-bottom:12px;
+}
 </style>
 </head>
-<body>
 
+<body>
+<div class="container">
 <header>
-  <h1>🐾 Pet Smart NFC Card</h1>
-  <p>One Tap Can Bring Me Home</p>
+  <!-- OPTIONAL: replace src with your UNITAPP logo file -->
+  <img src="logo.png" alt="UNITAPP">
+  <h1>Pet Smart NFC Card</h1>
+  <p>One tap can bring me home</p>
 </header>
 
-<section>
-  <h2>🐶 Pet Details</h2>
-  <p><strong>Pet ID:</strong> <span id="petId"></span></p>
-  <p><strong>Name:</strong> <span id="petName"></span></p>
-  <p><strong>Type:</strong> <span id="petType"></span></p>
-  <p><strong>Breed:</strong> <span id="breed"></span></p>
-  <p><strong>Age:</strong> <span id="age"></span></p>
-  <p><strong>Color/Mark:</strong> <span id="color"></span></p>
-  <p><strong>Gender:</strong> <span id="gender"></span></p>
-</section>
+<div id="lostBanner" class="alert hidden">🚨 THIS PET IS LOST – PLEASE CONTACT OWNER 🚨</div>
 
-<section>
-  <h2>👤 Owner Details</h2>
-  <p><strong>Name:</strong> <span id="ownerName"></span></p>
-  <p><strong>Mobile:</strong> <span id="mobile"></span></p>
-  <a id="callBtn" class="btn">📞 Call Owner</a>
-  <a id="waBtn" class="btn whatsapp">💬 WhatsApp</a>
-</section>
+<div class="card" id="viewCard">
+  <div class="pet-icon"><span>🐶</span></div>
+  <h2 id="petName">Loading...</h2>
 
-<section id="photoSection" style="display:none;">
-  <h2>📸 Pet Photo</h2>
-  <img id="petPhoto" alt="Pet Photo">
-</section>
+  <div class="row"><span class="label">Pet Type</span><span class="value" id="petType"></span></div>
+  <div class="row"><span class="label">Gender</span><span class="value" id="petGender"></span></div>
+  <div class="row"><span class="label">Pet ID</span><span class="value" id="petId"></span></div>
 
-<section>
-  <h2>🩺 Vaccination Status</h2>
-  <p id="vaccine"></p>
-</section>
+  <div class="actions">
+    <a id="callBtn">📞 Call</a>
+    <a id="waBtn">💬 WhatsApp</a>
+  </div>
 
-<footer>
-  © 2026 Pet Smart NFC Card • Made in India 🇮🇳
-</footer>
+  <button class="edit" onclick="toggleEdit(true)">✏️ Edit Details</button>
+</div>
+
+<div class="card hidden" id="editCard">
+  <input id="e_petName" placeholder="Pet Name">
+  <input id="e_petType" placeholder="Pet Type">
+  <input id="e_petGender" placeholder="Gender">
+  <input id="e_phone" placeholder="Mobile Number">
+  <input id="e_petId" placeholder="Pet ID">
+  <label style="font-size:13px;color:var(--muted)">
+    <input type="checkbox" id="e_lost"> Mark as Lost
+  </label>
+  <button onclick="saveData()">💾 Save</button>
+  <button class="edit" onclick="toggleEdit(false)">Cancel</button>
+</div>
+</div>
 
 <script>
-const sheetURL = "https://docs.google.com/spreadsheets/d/1SbMtoefZzlCpw4rnNlZU_GeTZXepJMGG9SPgQBzqm_g/export?format=csv";
+/* ================= FIREBASE CONFIG ================= */
+/* 🔴 PASTE YOUR OWN FIREBASE CONFIG BELOW 🔴 */
+const firebaseConfig = {
+  apiKey: "PASTE_HERE",
+  authDomain: "PASTE_HERE",
+  projectId: "PASTE_HERE",
+  storageBucket: "PASTE_HERE",
+  messagingSenderId: "PASTE_HERE",
+  appId: "PASTE_HERE"
+};
+/* =================================================== */
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 const params = new URLSearchParams(window.location.search);
-const petKey = params.get("pet");
+const petKey = params.get("pet") || "DEFAULT";
 
-if (!petKey) {
-  document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Pet ID not provided.</h2>";
+const viewCard = document.getElementById("viewCard");
+const editCard = document.getElementById("editCard");
+
+function toggleEdit(on){
+  viewCard.classList.toggle("hidden",on);
+  editCard.classList.toggle("hidden",!on);
 }
 
-fetch(sheetURL)
-  .then(res => res.text())
-  .then(csv => {
-    const rows = csv.trim().split("\n").slice(1);
-    rows.forEach(row => {
-      const c = row.split(",");
+async function loadData(){
+  const doc = await db.collection("pets").doc(petKey).get();
+  if(!doc.exists) return;
+  const d = doc.data();
 
-      // Adjust indices if your Sheet columns differ
-      if (c[1] === petKey) {
-        document.getElementById("petId").innerText = c[1];
-        document.getElementById("ownerName").innerText = c[3];
-        document.getElementById("petName").innerText = c[6];
-        document.getElementById("petType").innerText = c[10];
-        document.getElementById("breed").innerText = c[7];
-        document.getElementById("age").innerText = c[8];
-        document.getElementById("color").innerText = c[9];
-        document.getElementById("gender").innerText = c[11];
+  petName.textContent = d.petName;
+  petType.textContent = d.petType;
+  petGender.textContent = d.petGender;
+  petId.textContent = d.petId;
+  callBtn.href = "tel:"+d.phone;
+  waBtn.href = "https://wa.me/"+d.phone;
 
-        const fullMobile = c[2] + c[4];
-        document.getElementById("mobile").innerText = fullMobile;
+  lostBanner.classList.toggle("hidden",!d.lost);
 
-        document.getElementById("callBtn").href = "tel:" + fullMobile;
-        document.getElementById("waBtn").href = "https://wa.me/" + fullMobile.replace("+", "");
+  e_petName.value = d.petName;
+  e_petType.value = d.petType;
+  e_petGender.value = d.petGender;
+  e_phone.value = d.phone;
+  e_petId.value = d.petId;
+  e_lost.checked = d.lost;
+}
 
-        document.getElementById("vaccine").innerText = c[12];
-
-        if (c[13]) {
-          document.getElementById("petPhoto").src = c[13];
-          document.getElementById("photoSection").style.display = "block";
-        }
-      }
-    });
-  })
-  .catch(err => {
-    console.error(err);
-    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Failed to load data.</h2>";
+async function saveData(){
+  await db.collection("pets").doc(petKey).set({
+    petName:e_petName.value,
+    petType:e_petType.value,
+    petGender:e_petGender.value,
+    phone:e_phone.value,
+    petId:e_petId.value,
+    lost:e_lost.checked
   });
-</script>
+  toggleEdit(false);
+  loadData();
+}
 
+loadData();
+</script>
 </body>
 </html>
