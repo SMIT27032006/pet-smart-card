@@ -112,62 +112,103 @@ footer span{cursor:pointer;color:#2dd4bf;margin:0 6px}
 
 <script>
 /* FIREBASE CONFIG */
-const firebaseConfig={
-  apiKey:"PASTE_HERE",
-  authDomain:"PASTE_HERE",
-  projectId:"PASTE_HERE",
-  appId:"PASTE_HERE"
+const firebaseConfig = {
+  apiKey: "PASTE_HERE",
+  authDomain: "PASTE_HERE",
+  projectId: "PASTE_HERE",
+  appId: "PASTE_HERE"
 };
+
 firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
+const db = firebase.firestore();
 
-const petId=new URLSearchParams(location.search).get("pet")||"PET001";
+/* PET ID */
+const petId = new URLSearchParams(window.location.search).get("pet") || "PET001";
 
-async function load(){
-  const docSnap = await db.collection("pets").doc(petId).get();
+/* ELEMENTS */
+const v_name = document.getElementById("v_name");
+const v_type = document.getElementById("v_type");
+const v_owner = document.getElementById("v_owner");
+const callBtn = document.getElementById("callBtn");
+const waBtn = document.getElementById("waBtn");
+const lostAlert = document.getElementById("lostAlert");
+const photoBox = document.getElementById("photoBox");
 
-if (!docSnap.exists) {
-  console.log("No pet found, new entry");
-  return;
+const e_name = document.getElementById("e_name");
+const e_type = document.getElementById("e_type");
+const e_owner = document.getElementById("e_owner");
+const e_phone = document.getElementById("e_phone");
+const e_photo = document.getElementById("e_photo");
+const e_medical = document.getElementById("e_medical");
+const e_lost = document.getElementById("e_lost");
+
+const editBox = document.getElementById("editBox");
+
+/* LOAD DATA */
+async function loadPet() {
+  try {
+    const snap = await db.collection("pets").doc(petId).get();
+    if (!snap.exists) {
+      console.log("New pet, no data yet");
+      return;
+    }
+
+    const d = snap.data();
+
+    v_name.innerText = d.name || "—";
+    v_type.innerText = d.type || "—";
+    v_owner.innerText = d.owner || "—";
+
+    callBtn.href = "tel:" + d.phone;
+    waBtn.href = "https://wa.me/" + d.phone;
+
+    lostAlert.classList.toggle("hidden", !d.lost);
+
+    photoBox.innerHTML = d.photo
+      ? `<img src="${d.photo}">`
+      : "🐾";
+
+    e_name.value = d.name || "";
+    e_type.value = d.type || "";
+    e_owner.value = d.owner || "";
+    e_phone.value = d.phone || "";
+    e_photo.value = d.photo || "";
+    e_medical.value = d.medical || "";
+    e_lost.checked = d.lost || false;
+
+  } catch (err) {
+    console.error("LOAD ERROR:", err);
+  }
 }
 
-const d = docSnap.data();
+loadPet();
 
-  v_name.innerText=d.name||"—";
-  v_type.innerText=d.type||"—";
-  v_owner.innerText=d.owner||"—";
-  callBtn.href="tel:"+d.phone;
-  waBtn.href="https://wa.me/"+d.phone;
-  lostAlert.classList.toggle("hidden",!d.lost);
-
-  photoBox.innerHTML=d.photo?`<img src="${d.photo}">`:"🐾";
-
-  e_name.value=d.name||"";
-  e_type.value=d.type||"";
-  e_owner.value=d.owner||"";
-  e_phone.value=d.phone||"";
-  e_photo.value=d.photo||"";
-  e_medical.value=d.medical||"";
-  e_lost.checked=d.lost||false;
-}
-load();
-
-function toggleEdit(){
+/* EDIT TOGGLE */
+function toggleEdit() {
   editBox.classList.toggle("hidden");
 }
 
-async function save(){
-  await db.collection("pets").doc(petId).set({
-    name:e_name.value,
-    type:e_type.value,
-    owner:e_owner.value,
-    phone:e_phone.value.replace(/\D/g,""),
-    photo:e_photo.value,
-    medical:e_medical.value,
-    lost:e_lost.checked
-  },{merge:true});
-  editBox.classList.add("hidden");
-  load();
+/* SAVE DATA */
+async function save() {
+  try {
+    await db.collection("pets").doc(petId).set({
+      name: e_name.value,
+      type: e_type.value,
+      owner: e_owner.value,
+      phone: e_phone.value,
+      photo: e_photo.value,
+      medical: e_medical.value,
+      lost: e_lost.checked
+    });
+
+    alert("Saved successfully");
+    editBox.classList.add("hidden");
+    loadPet();
+
+  } catch (err) {
+    alert("Save failed");
+    console.error("SAVE ERROR:", err);
+  }
 }
 </script>
 
