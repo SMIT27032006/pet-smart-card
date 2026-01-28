@@ -124,9 +124,14 @@ const db=firebase.firestore();
 const petId=new URLSearchParams(location.search).get("pet")||"PET001";
 
 async function load(){
-  const doc=await db.collection("pets").doc(petId).get();
-  if(!doc.exists)return;
-  const d=doc.data();
+  const docSnap = await db.collection("pets").doc(petId).get();
+
+if (!docSnap.exists) {
+  console.log("No pet found, new entry");
+  return;
+}
+
+const d = docSnap.data();
 
   v_name.innerText=d.name||"—";
   v_type.innerText=d.type||"—";
