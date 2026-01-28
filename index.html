@@ -5,246 +5,166 @@
 <title>UNITAPP – Pet Smart NFC Card</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
 :root{
-  --bg1:#020617;
-  --bg2:#0f172a;
-  --glass:rgba(255,255,255,0.06);
-  --accent:#2dd4bf;
-  --text:#e5e7eb;
-  --muted:#94a3b8;
+  --bg1:#020617;--bg2:#0f172a;--accent:#2dd4bf;
+  --text:#e5e7eb;--muted:#94a3b8;--danger:#7f1d1d;
 }
 *{box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
-body{
-  margin:0;
-  min-height:100vh;
-  background:radial-gradient(circle at top,var(--bg2),var(--bg1));
-  color:var(--text);
-  display:flex;
-  justify-content:center;
-}
-.wrapper{
-  width:100%;
-  max-width:420px;
-  padding:22px;
-}
-.logo{
-  text-align:center;
-  margin-bottom:16px;
-}
-.logo img{
-  height:70px;
-}
-.logo h1{
-  margin:8px 0 2px;
-  font-size:22px;
-}
-.logo p{
-  margin:0;
-  font-size:13px;
-  color:var(--muted);
-}
-.glass{
-  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
-  backdrop-filter:blur(14px);
-  border-radius:22px;
-  padding:22px;
-  box-shadow:0 25px 50px rgba(0,0,0,.6);
-}
-.avatar{
-  width:96px;
-  height:96px;
-  border-radius:50%;
-  background:rgba(45,212,191,.15);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:42px;
-  margin:0 auto 10px;
-}
-h2{text-align:center;margin:6px 0 16px}
-.row{
-  display:flex;
-  justify-content:space-between;
-  padding:8px 0;
-  border-bottom:1px solid rgba(255,255,255,.08);
-}
-.row:last-child{border:none}
-.label{font-size:13px;color:var(--muted)}
-.value{font-weight:500}
-.actions{
-  display:flex;
-  gap:12px;
-  margin-top:16px;
-}
-.actions a{
-  flex:1;
-  padding:12px;
-  border-radius:14px;
-  background:var(--accent);
-  color:#022c22;
-  font-weight:600;
-  text-align:center;
-  text-decoration:none;
-}
-.editBtn{
-  margin-top:14px;
-  width:100%;
-  padding:12px;
-  border-radius:14px;
-  background:transparent;
-  border:1px dashed var(--accent);
-  color:var(--accent);
-  font-weight:600;
-  cursor:pointer;
-}
-input{
-  width:100%;
-  margin-bottom:10px;
-  padding:12px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,.15);
-  background:#020617;
-  color:var(--text);
-}
-.save{
-  background:var(--accent);
-  color:#022c22;
-  border:none;
-  padding:12px;
-  border-radius:14px;
-  font-weight:700;
-  width:100%;
-  cursor:pointer;
-}
-.cancel{
-  margin-top:10px;
-  background:transparent;
-  border:1px dashed var(--accent);
-  color:var(--accent);
-  padding:12px;
-  border-radius:14px;
-  width:100%;
-}
+body{margin:0;background:radial-gradient(circle at top,var(--bg2),var(--bg1));color:var(--text)}
+.container{max-width:440px;margin:auto;padding:20px}
+.card{background:rgba(255,255,255,.06);backdrop-filter:blur(12px);border-radius:22px;padding:20px;margin-bottom:16px}
 .hidden{display:none}
-.alert{
-  background:#7f1d1d;
-  color:#fecaca;
-  padding:10px;
-  border-radius:12px;
-  text-align:center;
-  margin-bottom:12px;
+button,input,textarea,select{
+  width:100%;margin-top:10px;padding:12px;border-radius:12px;
+  background:#020617;color:var(--text);
+  border:1px solid rgba(255,255,255,.15)
 }
+button{font-weight:700;cursor:pointer}
+.primary{background:var(--accent);color:#022c22}
+.link{background:none;border:none;color:var(--accent);text-decoration:underline}
+.alert{background:var(--danger);padding:10px;border-radius:10px;text-align:center}
+footer{text-align:center;font-size:12px;color:var(--muted)}
+footer button{margin:4px}
 </style>
 </head>
 
 <body>
-<div class="wrapper">
+<div class="container">
 
-<div class="logo">
-  <!-- Upload logo.png in repo -->
-  <img src="logo.png" alt="UNITAPP">
-  <h1>Pet Smart NFC Card</h1>
-  <p>One tap can bring me home</p>
+<!-- ADMIN DASHBOARD -->
+<div id="adminBox" class="card hidden">
+  <h2>Admin Dashboard</h2>
+  <input id="adminPin" type="password" placeholder="Admin PIN">
+  <button class="primary" onclick="loadAdmin()">Enter</button>
+  <div id="adminList"></div>
 </div>
 
-<div id="lostAlert" class="alert hidden">
-🚨 THIS PET IS LOST — PLEASE CONTACT OWNER 🚨
+<!-- PET SELECT -->
+<div id="petSwitch" class="card hidden">
+  <select id="petSelect" onchange="switchPet()"></select>
 </div>
 
-<div class="glass" id="viewBox">
-  <div class="avatar">🐾</div>
-  <h2 id="v_name">Loading...</h2>
+<!-- LOST ALERT -->
+<div id="lostAlert" class="alert hidden">🚨 PET IS LOST – CONTACT OWNER 🚨</div>
 
-  <div class="row"><span class="label">Pet Type</span><span class="value" id="v_type"></span></div>
-  <div class="row"><span class="label">Gender</span><span class="value" id="v_gender"></span></div>
-  <div class="row"><span class="label">Pet ID</span><span class="value" id="v_id"></span></div>
-
-  <div class="actions">
-    <a id="callBtn">📞 Call</a>
-    <a id="waBtn">💬 WhatsApp</a>
-  </div>
-
-  <button class="editBtn" onclick="edit(true)">✏️ Edit Details</button>
+<!-- VIEW -->
+<div id="viewBox" class="card">
+  <h2 id="v_name">Loading…</h2>
+  <p id="v_type"></p>
+  <p id="v_owner"></p>
+  <button id="callBtn" class="primary">📞 Call</button>
+  <button id="waBtn" class="primary">💬 WhatsApp</button>
+  <button onclick="showPin()">✏️ Edit</button>
 </div>
 
-<div class="glass hidden" id="editBox">
+<!-- PIN -->
+<div id="pinBox" class="card hidden">
+  <input id="pinInput" type="password" placeholder="Pet PIN">
+  <button class="primary" onclick="verifyPin()">Unlock</button>
+</div>
+
+<!-- EDIT -->
+<div id="editBox" class="card hidden">
   <input id="e_name" placeholder="Pet Name">
-  <input id="e_type" placeholder="Pet Type (Dog/Cat)">
-  <input id="e_gender" placeholder="Gender">
-  <input id="e_phone" placeholder="Mobile Number">
-  <input id="e_id" placeholder="Pet ID">
-  <label style="font-size:13px;color:var(--muted)">
-    <input type="checkbox" id="e_lost"> Mark as Lost
-  </label>
-  <button class="save" onclick="save()">💾 Save</button>
-  <button class="cancel" onclick="edit(false)">Cancel</button>
+  <input id="e_type" placeholder="Pet Type">
+  <input id="e_owner" placeholder="Owner Name">
+  <input id="e_phone" placeholder="Phone">
+  <input id="e_photo" placeholder="Photo URL">
+  <label><input type="checkbox" id="e_lost"> Lost</label>
+  <input id="e_pin" placeholder="Set / Change PIN">
+  <button class="primary" onclick="save()">Save</button>
+  <button onclick="cancel()">Cancel</button>
 </div>
+
+<!-- TERMS -->
+<div id="termsBox" class="card hidden">
+  <h3>Terms of Use</h3>
+  <p>This service provides pet identification and contact assistance. UNITAPP is not liable for misuse.</p>
+</div>
+
+<!-- PRIVACY -->
+<div id="privacyBox" class="card hidden">
+  <h3>Privacy Policy</h3>
+  <p>We store only pet and owner information provided voluntarily. No tracking cookies used.</p>
+</div>
+
+<footer>
+  <button class="link" onclick="showTerms()">Terms</button>
+  <button class="link" onclick="showPrivacy()">Privacy</button>
+</footer>
 
 </div>
 
 <script>
-/* 🔴 PASTE YOUR FIREBASE CONFIG HERE 🔴 */
-const firebaseConfig = {
-  apiKey: "PASTE_HERE",
-  authDomain: "PASTE_HERE",
-  projectId: "PASTE_HERE",
-  storageBucket: "PASTE_HERE",
-  messagingSenderId: "PASTE_HERE",
-  appId: "PASTE_HERE"
+/* 🔴 FIREBASE CONFIG 🔴 */
+const firebaseConfig={
+  apiKey:"PASTE_HERE",
+  authDomain:"PASTE_HERE",
+  projectId:"PASTE_HERE",
+  storageBucket:"PASTE_HERE",
+  messagingSenderId:"PASTE_HERE",
+  appId:"PASTE_HERE"
 };
-/* 🔴 DO NOT CHANGE ANYTHING ELSE 🔴 */
-
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db=firebase.firestore();
 
-const petKey = new URLSearchParams(location.search).get("pet") || "DEFAULT";
+/* GLOBAL */
+let petId=new URLSearchParams(location.search).get("pet")||"PET1";
+const isAdmin=new URLSearchParams(location.search).get("admin");
 
-function edit(on){
-  viewBox.classList.toggle("hidden",on);
-  editBox.classList.toggle("hidden",!on);
+/* ADMIN */
+async function loadAdmin(){
+  if(adminPin.value!=="1234"){alert("Wrong admin PIN");return;}
+  adminList.innerHTML="";
+  const snap=await db.collection("pets").get();
+  snap.forEach(d=>{
+    const b=document.createElement("button");
+    b.innerText=d.id;
+    b.onclick=()=>location.href=`?pet=${d.id}`;
+    adminList.appendChild(b);
+  });
 }
 
+/* LOAD */
 async function load(){
-  const doc = await db.collection("pets").doc(petKey).get();
-  if(!doc.exists) return;
-  const d = doc.data();
-
+  if(isAdmin){adminBox.classList.remove("hidden");return;}
+  const doc=await db.collection("pets").doc(petId).get();
+  if(!doc.exists)return;
+  const d=doc.data();
   v_name.innerText=d.name;
   v_type.innerText=d.type;
-  v_gender.innerText=d.gender;
-  v_id.innerText=d.pid;
-  callBtn.href="tel:"+d.phone;
-  waBtn.href="https://wa.me/"+d.phone;
+  v_owner.innerText=d.owner;
+  callBtn.onclick=()=>location.href="tel:"+d.phone;
+  waBtn.onclick=()=>location.href="https://wa.me/"+d.phone;
   lostAlert.classList.toggle("hidden",!d.lost);
-
-  e_name.value=d.name;
-  e_type.value=d.type;
-  e_gender.value=d.gender;
-  e_phone.value=d.phone;
-  e_id.value=d.pid;
-  e_lost.checked=d.lost;
 }
-
-async function save(){
-  await db.collection("pets").doc(petKey).set({
-    name:e_name.value,
-    type:e_type.value,
-    gender:e_gender.value,
-    phone:e_phone.value,
-    pid:e_id.value,
-    lost:e_lost.checked
-  });
-  edit(false);
-  load();
-}
-
 load();
-</script>
 
+/* EDIT FLOW */
+function showPin(){viewBox.classList.add("hidden");pinBox.classList.remove("hidden");}
+async function verifyPin(){
+  const d=(await db.collection("pets").doc(petId).get()).data();
+  if(d.pin && pinInput.value!==d.pin){alert("Wrong PIN");return;}
+  pinBox.classList.add("hidden");editBox.classList.remove("hidden");
+  e_name.value=d.name||"";e_type.value=d.type||"";e_owner.value=d.owner||"";e_phone.value=d.phone||"";e_photo.value=d.photo||"";e_lost.checked=d.lost||false;
+}
+async function save(){
+  await db.collection("pets").doc(petId).set({
+    name:e_name.value,type:e_type.value,owner:e_owner.value,
+    phone:e_phone.value,photo:e_photo.value,lost:e_lost.checked,
+    pin:e_pin.value||undefined
+  },{merge:true});
+  location.reload();
+}
+function cancel(){location.reload();}
+
+/* TERMS */
+function showTerms(){termsBox.classList.toggle("hidden");privacyBox.classList.add("hidden");}
+function showPrivacy(){privacyBox.classList.toggle("hidden");termsBox.classList.add("hidden");}
+</script>
 </body>
 </html>
